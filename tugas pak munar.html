@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistem Informasi Rumah Sakit — Dokter (Demo)</title>
+  <meta name="description" content="Sistem Informasi Rumah Sakit - Modul Dokter. Single-file HTML siap dibuka di VS Code." />
+  <style>
+    :root{--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--accent:#2563eb}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#0f172a}
+    .container{max-width:1100px;margin:32px auto;padding:20px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+
+    /* layout */
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+    @media (max-width:880px){.grid{grid-template-columns:1fr}}
+
+    /* form */
+    form .row{display:flex;gap:8px}
+    input,select,button,textarea{font-family:inherit} 
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    .input{width:100%;padding:10px;border:1px solid #e6e9ef;border-radius:8px}
+    .btn{padding:10px 12px;border-radius:8px;border:0;cursor:pointer}
+    .btn-primary{background:var(--accent);color:white}
+    .btn-ghost{background:transparent;border:1px solid #e6e9ef}
+
+    /* table */
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #eef2f7}
+    th{font-size:13px;color:var(--muted)}
+    td small{display:block;color:var(--muted);font-size:12px}
+
+    /* utilities */
+    .muted{color:var(--muted)}
+    .actions button{margin-right:6px}
+    .search{display:flex;gap:8px;align-items:center}
+    .empty{padding:28px;text-align:center;color:var(--muted)}
+    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Sistem Informasi Rumah Sakit — Modul Dokter</h1>
+        <div class="muted">Versi demo • Single-file HTML untuk dibuka di VS Code</div>
+      </div>
+      <div>
+        <small class="muted">Local demo (data disimpan di localStorage)</small>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- LEFT: Table & Controls -->
+      <section>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+              <strong>Daftar Dokter</strong>
+              <div class="muted" style="font-size:13px">Kelola data dokter (tambah / edit / hapus / cari)</div>
+            </div>
+            <div class="search">
+              <input id="searchInput" class="input" placeholder="Cari nama atau spesialisasi..." />
+              <button id="btnClearSearch" class="btn btn-ghost">Reset</button>
+            </div>
+          </div>
+
+          <div id="tableWrap">
+            <table id="doctorsTable" aria-live="polite">
+              <thead>
+                <tr>
+                  <th style="width:48px">ID</th>
+                  <th>Nama</th>
+                  <th>Spesialisasi</th>
+                  <th>No. Telepon</th>
+                  <th style="width:160px">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="doctorsBody">
+                <!-- rows inserted by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="emptyState" class="empty" style="display:none">Belum ada data dokter. Tambahkan lewat form di sebelah kanan.</div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="exportBtn" class="btn btn-ghost">Export JSON</button>
+          <button id="importBtn" class="btn btn-ghost">Import JSON</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
+        </div>
+      </section>
+
+      <!-- RIGHT: Form -->
+      <aside>
+        <div class="card">
+          <strong id="formTitle">Tambah Dokter</strong>
+          <form id="doctorForm">
+            <input type="hidden" id="doctorId" />
+
+            <div style="margin-top:10px">
+              <label for="name">Nama lengkap</label>
+              <input id="name" class="input" required placeholder="Contoh: Dr. Siti Aminah" />
+            </div>
+
+            <div style="margin-top:10px">
+              <label for="specialization">Spesialisasi</label>
+              <input id="specialization" class="input" placeholder="Contoh: Penyakit Dalam / Anak" />
+            </div>
+
+            <div style="margin-top:10px">
+              <label for="phone">No. Telepon</label>
+              <input id="phone" class="input" placeholder="08xxxxxxxx" />
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button type="submit" class="btn btn-primary">Simpan</button>
+              <button type="button" id="cancelBtn" class="btn btn-ghost">Batal</button>
+            </div>
+
+            <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+              <div><strong>Tip:</strong> Data tersimpan di browser (localStorage).</div>
+            </div>
+          </form>
+        </div>
+
+        <div style="margin-top:12px" class="card">
+          <strong>Statistik</strong>
+          <div style="margin-top:10px" id="stats">
+            Total Dokter: <strong id="countDoctors">0</strong>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      Template sederhana • Kembangkan dengan backend dan autentikasi untuk produksi.
+    </footer>
+  </div>
+
+  <script>
+    // Single-file JS: Manage doctors (in-memory + localStorage)
+    const STORAGE_KEY = 'sisrumahsakith_dokter_v1';
+
+    // DOM references
+    const doctorsBody = document.getElementById('doctorsBody');
+    const doctorsTable = document.getElementById('doctorsTable');
+    const emptyState = document.getElementById('emptyState');
+    const countDoctors = document.getElementById('countDoctors');
+    const formTitle = document.getElementById('formTitle');
+
+    const doctorForm = document.getElementById('doctorForm');
+    const doctorId = document.getElementById('doctorId');
+    const nameInput = document.getElementById('name');
+    const specInput = document.getElementById('specialization');
+    const phoneInput = document.getElementById('phone');
+
+    const searchInput = document.getElementById('searchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
+
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+
+    let doctors = [];
+
+    // Helper: load from localStorage
+    function loadDoctors(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        doctors = raw ? JSON.parse(raw) : getSampleData();
+      }catch(e){
+        console.error('Gagal memuat data:', e);
+        doctors = getSampleData();
+      }
+    }
+
+    // Helper: save to localStorage
+    function saveDoctors(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(doctors));
+      render();
+    }
+
+    // Sample initial data
+    function getSampleData(){
+      return [
+        {id:1,name:'Dr. Siti Aminah',specialization:'Pediatri',phone:'081234567890'},
+        {id:2,name:'Dr. Budi Santoso',specialization:'Bedah',phone:'082345678901'}
+      ];
+    }
+
+    // Render table
+    function render(filter=''){
+      const q = filter.trim().toLowerCase();
+      const visible = doctors.filter(d => !q || (d.name + ' ' + (d.specialization||'')).toLowerCase().includes(q));
+
+      doctorsBody.innerHTML = '';
+      if(visible.length === 0){
+        doctorsTable.style.display = 'none';
+        emptyState.style.display = '';
+      } else {
+        doctorsTable.style.display = '';
+        emptyState.style.display = 'none';
+
+        visible.forEach(d => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${d.id}</td>
+            <td><strong>${escapeHtml(d.name)}</strong><small>${escapeHtml(d.name)}</small></td>
+            <td>${escapeHtml(d.specialization||'-')}</td>
+            <td>${escapeHtml(d.phone||'-')}</td>
+            <td class="actions">
+              <button data-id="${d.id}" class="btn btn-ghost" onclick="editDoctor(${d.id})">Edit</button>
+              <button data-id="${d.id}" class="btn" onclick="deleteDoctor(${d.id})">Hapus</button>
+            </td>
+          `;
+          doctorsBody.appendChild(tr);
+        });
+      }
+
+      countDoctors.textContent = doctors.length;
+    }
+
+    // Utility: escape HTML
+    function escapeHtml(str){
+      if(!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Add or update doctor
+    doctorForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const id = doctorId.value ? Number(doctorId.value) : null;
+      const name = nameInput.value.trim();
+      const spec = specInput.value.trim();
+      const phone = phoneInput.value.trim();
+
+      if(!name){
+        alert('Nama dokter wajib diisi');
+        return;
+      }
+
+      if(id){
+        // update
+        const idx = doctors.findIndex(x=>x.id===id);
+        if(idx>-1){
+          doctors[idx].name = name;
+          doctors[idx].specialization = spec;
+          doctors[idx].phone = phone;
+        }
+      } else {
+        // create new
+        const nextId = doctors.length ? Math.max(...doctors.map(d=>d.id))+1 : 1;
+        doctors.push({id: nextId, name, specialization: spec, phone});
+      }
+
+      saveDoctors();
+      resetForm();
+    });
+
+    // Reset form
+    function resetForm(){
+      doctorId.value = '';
+      nameInput.value = '';
+      specInput.value = '';
+      phoneInput.value = '';
+      formTitle.textContent = 'Tambah Dokter';
+    }
+
+    // Expose edit/delete to global for inline onclick
+    window.editDoctor = function(id){
+      const doc = doctors.find(x=>x.id===id);
+      if(!doc) return alert('Data tidak ditemukan');
+      doctorId.value = doc.id;
+      nameInput.value = doc.name;
+      specInput.value = doc.specialization || '';
+      phoneInput.value = doc.phone || '';
+      formTitle.textContent = 'Edit Dokter (ID: '+doc.id+')';
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    window.deleteDoctor = function(id){
+      if(!confirm('Hapus data dokter ini?')) return;
+      doctors = doctors.filter(x=>x.id!==id);
+      saveDoctors();
+    }
+
+    // Search
+    searchInput.addEventListener('input', ()=> render(searchInput.value));
+    btnClearSearch.addEventListener('click', ()=>{ searchInput.value=''; render(); });
+
+    // Cancel edit
+    document.getElementById('cancelBtn').addEventListener('click', resetForm);
+
+    // Export JSON
+    exportBtn.addEventListener('click', ()=>{
+      const dataStr = JSON.stringify(doctors, null, 2);
+      const blob = new Blob([dataStr], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'doctors.json'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Import JSON (file picker)
+    importBtn.addEventListener('click', ()=> importFile.click());
+    importFile.addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      try{
+        const txt = await f.text();
+        const parsed = JSON.parse(txt);
+        if(!Array.isArray(parsed)) throw new Error('Format file tidak sesuai');
+        // basic validation
+        parsed.forEach(item=>{ if(!item.id || !item.name) throw new Error('Setiap item harus memiliki id dan name'); });
+        doctors = parsed;
+        saveDoctors();
+        alert('Import berhasil');
+      }catch(err){
+        alert('Import gagal: '+err.message);
+      } finally{ importFile.value = ''; }
+    });
+
+    // Init
+    loadDoctors();
+    render();
+  </script>
+</body>
+</html>
